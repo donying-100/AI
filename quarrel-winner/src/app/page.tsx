@@ -1,103 +1,230 @@
-import Image from "next/image";
+'use client'
+
+import { useState } from 'react'
+import { generateReplies } from './api/generate/route'
+
+interface Reply {
+  id: number
+  content: string
+  timestamp: number
+}
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [opponentText, setOpponentText] = useState('')
+  const [intensity, setIntensity] = useState(5)
+  const [replies, setReplies] = useState<Reply[]>([])
+  const [isLoading, setIsLoading] = useState(false)
+  const [history, setHistory] = useState<Array<{
+    opponentText: string
+    intensity: number
+    replies: Reply[]
+    timestamp: number
+  }>>([])
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  // 从 localStorage 加载历史记录
+  useState(() => {
+    if (typeof window !== 'undefined') {
+      const savedHistory = localStorage.getItem('quarrel-history')
+      if (savedHistory) {
+        setHistory(JSON.parse(savedHistory))
+      }
+    }
+  })
+
+  const handleGenerate = async () => {
+    if (!opponentText.trim()) {
+      alert('请输入对方的话！')
+      return
+    }
+
+    setIsLoading(true)
+    setReplies([])
+
+    try {
+      const response = await fetch('/api/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          opponentText: opponentText.trim(),
+          intensity,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('生成失败')
+      }
+
+      const data = await response.json()
+      const newReplies = data.replies.map((content: string, index: number) => ({
+        id: Date.now() + index,
+        content,
+        timestamp: Date.now(),
+      }))
+
+      setReplies(newReplies)
+
+      // 保存到历史记录
+      const newHistoryItem = {
+        opponentText,
+        intensity,
+        replies: newReplies,
+        timestamp: Date.now(),
+      }
+      const updatedHistory = [newHistoryItem, ...history].slice(0, 10) // 只保留最近10条
+      setHistory(updatedHistory)
+      
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('quarrel-history', JSON.stringify(updatedHistory))
+      }
+    } catch (error) {
+      console.error('生成回复失败:', error)
+      alert('生成失败，请重试！')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      alert('已复制到剪贴板！')
+    })
+  }
+
+  const getIntensityLabel = (value: number) => {
+    if (value <= 2) return '温和'
+    if (value <= 4) return '普通'
+    if (value <= 6) return '强烈'
+    if (value <= 8) return '激烈'
+    return '核弹级'
+  }
+
+  const getIntensityColor = (value: number) => {
+    if (value <= 2) return 'text-green-600'
+    if (value <= 4) return 'text-blue-600'
+    if (value <= 6) return 'text-yellow-600'
+    if (value <= 8) return 'text-orange-600'
+    return 'text-red-600'
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-100 py-4 px-4">
+      <div className="max-w-md mx-auto">
+        {/* 头部 */}
+        <div className="text-center mb-6">
+          <h1 className="text-2xl font-bold text-gray-800 mb-2">🔥 吵架包赢</h1>
+          <p className="text-sm text-gray-600">AI智能吵架助手，让你在争论中占据上风</p>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+
+        {/* 主要输入区域 */}
+        <div className="wechat-card p-4 mb-4">
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              对方说了什么？
+            </label>
+            <textarea
+              value={opponentText}
+              onChange={(e) => setOpponentText(e.target.value)}
+              placeholder="输入对方的话..."
+              className="w-full p-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              rows={3}
+              maxLength={500}
+            />
+            <div className="text-right text-xs text-gray-500 mt-1">
+              {opponentText.length}/500
+            </div>
+          </div>
+
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              语气强烈程度: <span className={`font-bold ${getIntensityColor(intensity)}`}>
+                {intensity} - {getIntensityLabel(intensity)}
+              </span>
+            </label>
+            <div className="relative">
+              <input
+                type="range"
+                min="1"
+                max="10"
+                value={intensity}
+                onChange={(e) => setIntensity(Number(e.target.value))}
+                className="w-full h-2 slider-track rounded-lg appearance-none cursor-pointer"
+                style={{
+                  background: `linear-gradient(to right, #07c160 0%, #ff6b6b 100%)`
+                }}
+              />
+              <div className="flex justify-between text-xs text-gray-500 mt-1">
+                <span>温和</span>
+                <span>核弹级</span>
+              </div>
+            </div>
+          </div>
+
+          <button
+            onClick={handleGenerate}
+            disabled={isLoading || !opponentText.trim()}
+            className="w-full wechat-button disabled:opacity-50"
+          >
+            {isLoading ? (
+              <span className="loading-dots">生成中</span>
+            ) : (
+              '🚀 开始吵架'
+            )}
+          </button>
+        </div>
+
+        {/* 回复结果 */}
+        {replies.length > 0 && (
+          <div className="mb-4">
+            <h3 className="text-lg font-semibold text-gray-800 mb-3">💪 反击回复</h3>
+            {replies.map((reply, index) => (
+              <div key={reply.id} className="reply-card">
+                <div className="flex justify-between items-start mb-2">
+                  <span className="text-sm opacity-80">回复 {index + 1}</span>
+                  <button
+                    onClick={() => copyToClipboard(reply.content)}
+                    className="text-xs bg-white bg-opacity-20 px-2 py-1 rounded hover:bg-opacity-30 transition-colors"
+                  >
+                    复制
+                  </button>
+                </div>
+                <p className="text-white leading-relaxed">{reply.content}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* 历史记录 */}
+        {history.length > 0 && (
+          <div className="wechat-card p-4">
+            <h3 className="text-lg font-semibold text-gray-800 mb-3">📚 历史记录</h3>
+            <div className="space-y-3 max-h-60 overflow-y-auto">
+              {history.slice(0, 5).map((item, index) => (
+                <div key={index} className="border-b border-gray-200 pb-2 last:border-b-0">
+                  <div className="text-sm text-gray-600 mb-1">
+                    对方: "{item.opponentText.slice(0, 30)}{item.opponentText.length > 30 ? '...' : ''}"
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    强度: {item.intensity} | {new Date(item.timestamp).toLocaleString()}
+                  </div>
+                </div>
+              ))}
+            </div>
+            {history.length > 5 && (
+              <div className="text-center mt-2">
+                <span className="text-xs text-gray-500">还有 {history.length - 5} 条历史记录</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 页脚 */}
+        <div className="text-center mt-6 text-xs text-gray-500">
+          <p>⚠️ 请理性使用，和谐交流</p>
+          <p className="mt-1">Powered by AI • 仅供娱乐</p>
+        </div>
+      </div>
     </div>
-  );
+  )
 }
