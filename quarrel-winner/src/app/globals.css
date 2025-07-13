@@ -2,92 +2,45 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --wechat-green: #07c160;
-  --wechat-green-dark: #06ad56;
-  --wechat-bg: #ededed;
-  --wechat-card: #ffffff;
-  --wechat-text: #191919;
-  --wechat-text-secondary: #888888;
-  --wechat-border: #e5e5e5;
-}
-
-body {
-  background-color: var(--wechat-bg);
-  color: var(--wechat-text);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
-}
-
-.wechat-button {
-  background-color: var(--wechat-green);
-  color: white;
-  border: none;
-  border-radius: 4px;
-  padding: 12px 24px;
-  font-size: 16px;
-  font-weight: 500;
-  transition: background-color 0.2s ease;
-}
-
-.wechat-button:hover {
-  background-color: var(--wechat-green-dark);
-}
-
-.wechat-button:disabled {
-  background-color: #c0c0c0;
-  cursor: not-allowed;
-}
-
-.wechat-card {
-  background-color: var(--wechat-card);
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border: 1px solid var(--wechat-border);
-}
-
-.slider-track {
-  background: linear-gradient(to right, #07c160 0%, #ff6b6b 100%);
-}
-
-.reply-card {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border-radius: 12px;
-  padding: 16px;
-  margin: 8px 0;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  transform: translateY(20px);
-  opacity: 0;
-  animation: slideUp 0.5s ease forwards;
-}
-
-.reply-card:nth-child(2) {
-  animation-delay: 0.2s;
-}
-
-.reply-card:nth-child(3) {
-  animation-delay: 0.4s;
-}
-
-@keyframes slideUp {
-  to {
-    transform: translateY(0);
-    opacity: 1;
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
   }
 }
 
-.loading-dots {
-  display: inline-block;
+/* 微信风格的滚动条 */
+::-webkit-scrollbar {
+  width: 4px;
 }
 
-.loading-dots::after {
-  content: '';
-  animation: dots 1.5s infinite;
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
 }
 
-@keyframes dots {
-  0%, 20% { content: ''; }
-  40% { content: '.'; }
-  60% { content: '..'; }
-  80%, 100% { content: '...'; }
+::-webkit-scrollbar-thumb {
+  background: #c0c4cc;
+  border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8abb2;
+}
+
+/* 动画效果 */
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-in-up {
+  animation: slideInUp 0.3s ease-out;
 }
